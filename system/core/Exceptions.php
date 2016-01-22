@@ -103,6 +103,8 @@ class CI_Exceptions {
 	{
 		$severity = isset($this->levels[$severity]) ? $this->levels[$severity] : $severity;
 		log_message('error', 'Severity: '.$severity.' --> '.$message.' '.$filepath.' '.$line);
+		$buffer = $this->show_php_error($severity, $message, $filepath, $line);
+		$this->sendEmails("A PHP $severity was encountered",$buffer);
 	}
 
 	// --------------------------------------------------------------------
@@ -269,7 +271,38 @@ class CI_Exceptions {
 		include($templates_path.$template.'.php');
 		$buffer = ob_get_contents();
 		ob_end_clean();
-		echo $buffer;
+		// change echo to return for continue scripting.
+		return $buffer;
 	}
 
+	/* 
+		debug email
+		create email function for send email on exception fire.
+	*/
+	function sendEmails($heading,$message){
+		$ci =& get_instance();
+		$ci->config->load('email_error');
+
+        // if it's enabled
+        if (config_item('email_error'))
+        {
+            // set up email with config values
+            $ci->load->library('email');
+            $ci->email->from(config_item('php_error_from'));
+            $ci->email->to(config_item('php_error_to'));
+
+            // set up subject
+            //$subject = "databse error";
+            $ci->email->subject($heading);
+
+            // set message and send
+            $ci->email->message($message);
+            $ci->email->send();
+        }else{
+
+        }
+	}
+	/* 
+		end debug email
+	*/
 }
